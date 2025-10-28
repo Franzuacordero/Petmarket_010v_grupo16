@@ -14,10 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
-/**
- * Tarjeta para "no hay datos / lista vacía".
- * Ejemplo: "No hay órdenes", "No hay temas aún", etc.
- */
+
 @Composable
 fun EmptyStateCard(text: String) {
     ElevatedCard(
@@ -38,10 +35,7 @@ fun EmptyStateCard(text: String) {
     }
 }
 
-/**
- * Tarjeta de información / instrucciones.
- * Ejemplo: "Selecciona un profesional para ver horarios".
- */
+
 @Composable
 fun InfoCard(text: String) {
     Surface(
