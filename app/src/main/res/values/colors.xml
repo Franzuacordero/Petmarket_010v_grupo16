@@ -1,0 +1,7 @@
+<resources>
+    <color name="seed">#00A884</color>
+    <color name="md_theme_light_primary">#00A884</color>
+    <color name="md_theme_light_onPrimary">#FFFFFF</color>
+    <color name="md_theme_light_secondary">#4CAF50</color>
+    <color name="md_theme_light_onSecondary">#FFFFFF</color>
+</resources>
