@@ -4,7 +4,7 @@ import androidx.compose.runtime.mutableStateListOf
 import com.example.petmarket.model.*
 
 object Repo {
-    // --- TIENDA ---
+    // --- tienda ---
     val products = mutableStateListOf(
         Product(1, "Alimento perro 3kg", "Receta pollo + arroz", 89900, stock = 5),
         Product(2, "Arena gato 10L", "Aglomerante sin perfume", 129900, stock = 3),
@@ -24,6 +24,34 @@ object Repo {
         if (existing != null) existing.qty += qty else cart.add(CartItem(p, qty))
     }
 
+    // elimina producto del catálogo y del carrito /
+    fun deleteProduct(id: Long) {
+        products.removeAll { it.id == id }
+        cart.removeAll { it.product.id == id }
+    }
+
+
+    fun addProduct(
+        name: String,
+        desc: String,
+        priceCents: Long,
+        rentable: Boolean,
+        stock: Int
+    ) {
+        if (name.isBlank() || desc.isBlank() || priceCents <= 0 || stock < 0) return
+        val newId = (products.maxOfOrNull { it.id } ?: 0L) + 1L
+        products.add(
+            Product(
+                id = newId,
+                name = name.trim(),
+                desc = desc.trim(),
+                priceCents = priceCents,
+                rentable = rentable,
+                stock = stock
+            )
+        )
+    }
+
     fun removeFromCart(productId: Long) {
         cart.removeAll { it.product.id == productId }
     }
@@ -35,7 +63,7 @@ object Repo {
     fun totalCents(): Long =
         cart.sumOf { it.product.priceCents * it.qty }
 
-    /** Confirmar pedido: descuenta stock y limpia carrito */
+    // confirmar pedido: descuenta stock y limpia carrito /
     fun confirmOrder() {
         cart.forEach { ci ->
             val idx = products.indexOfFirst { it.id == ci.product.id }
@@ -48,7 +76,7 @@ object Repo {
         clearCart()
     }
 
-    // --- FORO ---
+    // --- foro ---
     val topics = mutableStateListOf(
         Topic(1, "Noticias", "Nueva vacuna antirrábica en stock", "Admin"),
         Topic(2, "Preguntas", "¿Cada cuánto cambiar arena?", "Carla")
@@ -69,7 +97,17 @@ object Repo {
         posts.add(Post(topicId, author, body))
     }
 
-    // --- SERVICIOS ---
+
+    fun deleteTopic(id: Long) {
+        topics.removeAll { it.id == id }
+        posts.removeAll { it.topicId == id }
+    }
+
+    fun deletePost(post: Post) {
+        posts.remove(post)
+    }
+
+    // --- servicios ---
     val services = listOf(
         Service(1, "Consulta veterinaria", 30, 150000),
         Service(2, "Baño y corte", 45, 200000)
@@ -91,7 +129,7 @@ object Repo {
         }
     }
 
-    // --- RESERVAS ---
+    // --- reserva ---
     val professionals = listOf(
         Professional(1, "Dra. Valdés", "Veterinaria"),
         Professional(2, "Carlos Soto", "Grooming")

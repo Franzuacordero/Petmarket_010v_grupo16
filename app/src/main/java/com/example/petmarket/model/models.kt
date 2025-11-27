@@ -1,6 +1,6 @@
 package com.example.petmarket.model
 
-// --- TIENDA ---
+// --- tienda ---
 data class Product(
     val id: Long,
     val name: String,
@@ -12,20 +12,20 @@ data class Product(
 
 data class CartItem(val product: Product, var qty: Int)
 
-// --- FORO ---
+// --- foro ---
 data class Topic(val id: Long, val category: String, val title: String, val author: String)
 data class Post(val topicId: Long, val author: String, val body: String)
 
-// --- SERVICIOS ---
+// --- Servicios ---
 data class Service(val id: Long, val name: String, val durationMin: Int, val basePriceCents: Long)
 data class ServiceOrder(
     val id: Long,
     val serviceId: Long,
     val customer: String,
-    var status: String = "pendiente" // pendiente → en_proceso → finalizado
+    var status: String = "pendiente"
 )
 
-// --- RESERVAS ---
+// --- reservas ---
 data class Professional(val id: Long, val name: String, val specialty: String)
 data class Slot(val id: Long, val professionalId: Long, val date: String, val time: String)
 data class Appointment(
@@ -33,5 +33,5 @@ data class Appointment(
     val professionalId: Long,
     val customer: String,
     val slotId: Long,
-    var status: String = "reservado" // reservado → atendido → cancelado
+    var status: String = "reservado"
 )

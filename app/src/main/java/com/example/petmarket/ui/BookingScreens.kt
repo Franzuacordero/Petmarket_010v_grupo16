@@ -35,7 +35,7 @@ fun BookingScreen(vm: BookingVm = viewModel()) {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
 
-            // -------- PROFESIONALES --------
+            // -------- profesionales --------
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -82,7 +82,7 @@ fun BookingScreen(vm: BookingVm = viewModel()) {
                 }
             }
 
-            // -------- AGENDA Y RESERVAS --------
+            // -------- agenda y reservas --------
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -145,7 +145,7 @@ fun BookingScreen(vm: BookingVm = viewModel()) {
                     }
                 }
 
-                // -------- RESERVAS HECHAS --------
+                // -------- reservas hechas --------
                 Text(
                     "Mis reservas",
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)

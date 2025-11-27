@@ -1,223 +1,283 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
 package com.example.petmarket.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material3.*
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.petmarket.model.Product
-import kotlinx.coroutines.launch
 
 @Composable
-fun StoreScreen(vm: StoreVm = viewModel()) {
-    val snackbar = remember { SnackbarHostState() }
-    var showCart by remember { mutableStateOf(false) }
+fun StoreScreen(
+    isAdmin: Boolean,
+    vm: StoreVm = viewModel()
+) {
+    // Campos para formulario admin
+    var name by remember { mutableStateOf("") }
+    var desc by remember { mutableStateOf("") }
+    var price by remember { mutableStateOf("") }
+    var stock by remember { mutableStateOf("") }
+    var rentable by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
 
-    if (showCart) {
-        CartDialog(
-            onClose = { showCart = false },
-            vm = vm
+    // Para mostrar/ocultar la ventanita del carrito
+    var showCartDialog by remember { mutableStateOf(false) }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+
+        // Título
+        Text(
+            "Tienda de Mascotas",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
         )
-    }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Tienda de Mascotas") },
-                actions = {
-                    FilledTonalButton(onClick = { showCart = true }) {
-                        Text("Carrito (${vm.cart.size})")
+        // --- bloque admin: agregar productos ---
+        if (isAdmin) {
+            ElevatedCard(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Admin: agregar producto",
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Nombre") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = desc,
+                        onValueChange = { desc = it },
+                        label = { Text("Descripción") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = price,
+                        onValueChange = { price = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Precio (en pesos, sin puntos)") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = stock,
+                        onValueChange = { stock = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Stock") },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Checkbox(
+                            checked = rentable,
+                            onCheckedChange = { rentable = it }
+                        )
+                        Text("Rentable (arriendo)")
                     }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbar) }
-    ) { padd ->
-        if (vm.products.isEmpty()) {
 
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padd),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("No hay productos disponibles", style = MaterialTheme.typography.titleMedium)
-            }
-        } else {
-            val scope = rememberCoroutineScope()
+                    if (error != null) {
+                        Text(
+                            error!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(vm.products) { p ->
-                    ProductCard(
-                        product = p,
-                        onAdd = { qty ->
-                            if (vm.canAdd(p, qty)) {
-                                vm.add(p, qty)
-                                scope.launch {
-                                    snackbar.showSnackbar("Agregado: ${p.name} ×$qty")
-                                }
+                    Button(
+                        onClick = {
+                            val priceLong = price.toLongOrNull() ?: -1
+                            val stockInt = stock.toIntOrNull() ?: -1
+                            if (name.isBlank() || desc.isBlank()
+                                || priceLong <= 0 || stockInt < 0
+                            ) {
+                                error =
+                                    "Revisa los datos. Precio > 0, stock ≥ 0, sin campos vacíos."
+                            } else {
+                                vm.addProduct(name, desc, priceLong, rentable, stockInt)
+                                name = ""
+                                desc = ""
+                                price = ""
+                                stock = ""
+                                rentable = false
+                                error = null
                             }
                         },
-                        canAdd = { q -> vm.canAdd(p, q) }
-                    )
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Agregar producto")
+                    }
+                }
+            }
+        }
+
+        // --- lista de productos ---
+        Text(
+            "Productos disponibles",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(vm.products) { p ->
+                ProductItem(
+                    product = p,
+                    onAddToCart = { vm.add(p, 1) },
+                    onDelete = { vm.deleteProduct(p.id) },
+                    canAdd = vm.canAdd(p, 1),
+                    isAdmin = isAdmin
+                )
+            }
+        }
+
+        // --- carrito /total ---
+        val total = vm.total()
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Total carrito: $${total / 100}")
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(
+                    onClick = { if (vm.cart.isNotEmpty()) showCartDialog = true }
+                ) {
+                    Text("Ver carrito")
+                }
+
+                Button(
+                    onClick = {
+                        if (vm.cart.isNotEmpty()) {
+                            showCartDialog = true
+                        }
+                    },
+                    enabled = total > 0
+                ) {
+                    Text("Confirmar pedido")
                 }
             }
         }
     }
+
+    // --- dialogo con detalle del carrito ---
+    if (showCartDialog) {
+        AlertDialog(
+            onDismissRequest = { showCartDialog = false },
+            title = { Text("Carrito de compras") },
+            text = {
+                if (vm.cart.isEmpty()) {
+                    Text("Tu carrito está vacío.")
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        vm.cart.forEach { item ->
+                            val subtotal = (item.product.priceCents * item.qty) / 100
+                            Text("${item.qty} x ${item.product.name} - $$subtotal")
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            "Total: $${vm.total() / 100}",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        vm.confirm()   // descuenta stock y limpia carrito
+                        showCartDialog = false
+                    },
+                    enabled = vm.cart.isNotEmpty()
+                ) {
+                    Text("Confirmar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCartDialog = false }) {
+                    Text("Cerrar")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-private fun ProductCard(
+fun ProductItem(
     product: Product,
-    onAdd: (qty: Int) -> Unit,
-    canAdd: (Int) -> Boolean
+    onAddToCart: () -> Unit,
+    onDelete: () -> Unit,
+    canAdd: Boolean,
+    isAdmin: Boolean
 ) {
-    var qty by remember(product.id) { mutableStateOf(1) }
-    val canAddNow by remember(product.stock, qty) { mutableStateOf(canAdd(qty)) }
-
     ElevatedCard(
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
     ) {
-        Column(Modifier.padding(16.dp)) {
-
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = product.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = product.desc,
-                        style = MaterialTheme.typography.bodyMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(product.name, style = MaterialTheme.typography.titleMedium)
+            Text(product.desc, style = MaterialTheme.typography.bodyMedium)
+            Text("Precio: $${product.priceCents / 100}")
+            Text("Stock: ${product.stock}")
+            if (product.rentable) {
                 Text(
-                    text = "$${product.priceCents / 100}",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    "Disponible para arriendo",
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
-
-            Spacer(Modifier.height(10.dp))
-
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SuggestionChip(
-                    onClick = {},
-                    label = { Text("Stock: ${product.stock}") },
-                    enabled = false
-                )
-                if (product.rentable) {
-                    AssistChip(
-                        onClick = {},
-                        label = { Text("Arrendable") },
-                        enabled = false
-                    )
-                }
-            }
-
-            Spacer(Modifier.height(12.dp))
-
 
             Row(
                 Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-
-                FilledTonalIconButton(
-                    onClick = { if (qty > 1) qty-- },
-                    enabled = qty > 1
-                ) { Icon(Icons.Default.Remove, contentDescription = "Menos") }
-
-                Text(
-                    text = qty.toString(),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-
-                FilledTonalIconButton(
-                    onClick = { if (canAdd(qty + 1)) qty++ },
-                    enabled = canAdd(qty + 1)
-                ) { Icon(Icons.Default.Add, contentDescription = "Más") }
-
-                Spacer(Modifier.weight(1f))
-
                 Button(
-                    onClick = { onAdd(qty) },
-                    enabled = canAddNow
-                ) { Text(if (canAddNow) "Agregar" else "Sin stock") }
-            }
-        }
-    }
-}
+                    onClick = onAddToCart,
+                    enabled = canAdd
+                ) {
+                    Text("Agregar al carrito")
+                }
 
-@Composable
-private fun CartDialog(onClose: () -> Unit, vm: StoreVm) {
-    AlertDialog(
-        onDismissRequest = onClose,
-        confirmButton = {
-            Button(
-                onClick = { vm.confirm(); onClose() },
-                enabled = vm.cart.isNotEmpty()
-            ) { Text("Confirmar pedido") }
-        },
-        dismissButton = {
-            TextButton(onClick = onClose) { Text("Cerrar") }
-        },
-        title = { Text("Carrito") },
-        text = {
-            if (vm.cart.isEmpty()) {
-                Text("Tu carrito está vacío.")
-            } else {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    vm.cart.forEach { ci ->
-                        ElevatedCard(
-                            modifier = Modifier.fillMaxWidth(),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            Row(
-                                Modifier
-                                    .fillMaxWidth()
-                                    .padding(12.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(ci.product.name, style = MaterialTheme.typography.titleSmall)
-                                    Text("x${ci.qty} · $${ci.product.priceCents / 100}")
-                                }
-                                IconButton(onClick = { vm.remove(ci.product.id) }) {
-                                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-                                }
-                            }
-                        }
+                if (isAdmin) {
+                    TextButton(onClick = onDelete) {
+                        Text("Eliminar producto")
                     }
-                    Divider(Modifier.padding(vertical = 4.dp))
-                    Text(
-                        "Total: $${vm.total() / 100}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
                 }
             }
         }
-    )
+    }
 }

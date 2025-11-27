@@ -1,4 +1,6 @@
 package com.example.petmarket.ui
+import com.example.petmarket.model.Post
+
 
 import androidx.lifecycle.ViewModel
 import com.example.petmarket.data.Repo
@@ -13,14 +15,30 @@ class StoreVm : ViewModel() {
     fun total() = Repo.totalCents()
     fun confirm() = Repo.confirmOrder()
     fun canAdd(p: Product, qty: Int) = Repo.canAddToCart(p, qty)
+
+    // --- admin: crud ---
+    fun addProduct(name: String, desc: String, priceCents: Long, rentable: Boolean, stock: Int) =
+        Repo.addProduct(name, desc, priceCents, rentable, stock)
+
+    fun deleteProduct(id: Long) = Repo.deleteProduct(id)
 }
 
 class ForumVm : ViewModel() {
     val topics = Repo.topics
-    fun addTopic(cat: String, title: String, author: String) = Repo.addTopic(cat, title, author)
-    fun postsOf(topicId: Long) = Repo.posts.filter { it.topicId == topicId }
-    fun addPost(topicId: Long, author: String, body: String) = Repo.addPost(topicId, author, body)
+    fun addTopic(cat: String, title: String, author: String) =
+        Repo.addTopic(cat, title, author)
+
+    fun postsOf(topicId: Long) =
+        Repo.posts.filter { it.topicId == topicId }
+
+    fun addPost(topicId: Long, author: String, body: String) =
+        Repo.addPost(topicId, author, body)
+
+    // --- moderación ---
+    fun deleteTopic(id: Long) = Repo.deleteTopic(id)
+    fun deletePost(post: Post) = Repo.deletePost(post)
 }
+
 
 class ServicesVm : ViewModel() {
     val services = Repo.services

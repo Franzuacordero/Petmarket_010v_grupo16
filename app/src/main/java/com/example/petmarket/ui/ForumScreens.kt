@@ -1,208 +1,248 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
-
 package com.example.petmarket.ui
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
+import com.example.petmarket.model.Post
 
 @Composable
 fun ForumScreen(vm: ForumVm = viewModel()) {
-    var cat by remember { mutableStateOf("General") }
+
+    // Formulario para nuevo tema
+    var cat by remember { mutableStateOf("") }
     var title by remember { mutableStateOf("") }
-    var author by remember { mutableStateOf("Usuario") }
+    var author by remember { mutableStateOf("") }
+    var topicError by remember { mutableStateOf<String?>(null) }
+
+    // Comentarios
     var selectedTopicId by remember { mutableStateOf<Long?>(null) }
+    var commentAuthor by remember { mutableStateOf("") }
+    var commentBody by remember { mutableStateOf("") }
+    var commentError by remember { mutableStateOf<String?>(null) }
 
-    var newComment by remember { mutableStateOf("") }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
 
-    val scope = rememberCoroutineScope()
-    val snackbar = remember { SnackbarHostState() }
+        Text(
+            "Foro de Mascotas",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+        )
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Comunidad / Foro") }) },
-        snackbarHost = { SnackbarHost(snackbar) }
-    ) { padd ->
+        // ---- Formular io nuevo tema (arriba) ----
+        ElevatedCard(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    "Crear nuevo tema",
+                    style = MaterialTheme.typography.titleMedium
+                )
+                OutlinedTextField(
+                    value = cat,
+                    onValueChange = { cat = it },
+                    label = { Text("Categoría (ej: Adopciones, Salud)") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it },
+                    label = { Text("Título del tema") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = author,
+                    onValueChange = { author = it },
+                    label = { Text("Autor") },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
+                if (topicError != null) {
+                    Text(
+                        topicError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                Button(
+                    onClick = {
+                        if (cat.isBlank() || title.isBlank() || author.isBlank()) {
+                            topicError = "Todos los campos son obligatorios."
+                        } else {
+                            vm.addTopic(cat, title, author)
+                            cat = ""
+                            title = ""
+                            author = ""
+                            topicError = null
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Publicar tema")
+                }
+            }
+        }
+
+        // ---- Zona de contenidos: lista de temas + detalle ----
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padd)
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+            Modifier.fillMaxSize(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
 
-
+            // --- Lista de temas (izquierda) ---
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
                     "Temas",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium
                 )
 
                 if (vm.topics.isEmpty()) {
-                    EmptyStateCard(text = "Aún no hay temas. ¡Crea el primero!")
+                    EmptyStateCard("No hay temas aún. Crea el primero.")
                 } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(vm.topics) { t ->
                             ElevatedCard(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { selectedTopicId = t.id },
-                                shape = MaterialTheme.shapes.large
+                                shape = MaterialTheme.shapes.medium
                             ) {
-                                Column(Modifier.padding(16.dp)) {
+                                Column(
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp)
+                                ) {
                                     Text(
                                         t.title,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = if (selectedTopicId == t.id)
+                                            FontWeight.Bold else FontWeight.Normal
                                     )
-                                    Spacer(Modifier.height(4.dp))
                                     Text(
-                                        "${t.category} • por ${t.author}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.secondary
+                                        "Cat: ${t.category} • por ${t.author}",
+                                        style = MaterialTheme.typography.bodySmall
                                     )
-                                }
-                            }
-                        }
-                    }
-                }
 
-                // Nueva discusión
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large
-                ) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            "Crear tema",
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Medium)
-                        )
-                        OutlinedTextField(
-                            value = cat,
-                            onValueChange = { cat = it },
-                            label = { Text("Categoría (ej: Preguntas, Noticias)") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = title,
-                            onValueChange = { title = it },
-                            label = { Text("Título del tema") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        OutlinedTextField(
-                            value = author,
-                            onValueChange = { author = it },
-                            label = { Text("Tu nombre / alias") },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Button(
-                            onClick = {
-                                if (title.isNotBlank()) {
-                                    vm.addTopic(cat, title, author)
-                                    title = ""
-                                    scope.launch {
-                                        snackbar.showSnackbar("Tema creado ✔")
+                                    Row(
+                                        Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.End
+                                    ) {
+                                        TextButton(onClick = {
+                                            vm.deleteTopic(t.id)
+                                            if (selectedTopicId == t.id) {
+                                                selectedTopicId = null
+                                            }
+                                        }) {
+                                            Text("Eliminar tema")
+                                        }
                                     }
                                 }
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Publicar tema")
+                            }
                         }
                     }
                 }
             }
 
-
+            // -------- Detalle y comentarios (derecha) --------
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.weight(1.3f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val posts = remember(selectedTopicId) {
-                    selectedTopicId?.let { vm.postsOf(it) } ?: emptyList()
-                }
-
                 Text(
                     "Comentarios",
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleMedium
                 )
 
-                if (selectedTopicId == null) {
-                    InfoCard("Selecciona un tema para ver la conversación 🐾")
+                val currentId = selectedTopicId
+                if (currentId == null) {
+                    InfoCard("Selecciona un tema para ver y escribir comentarios.")
                 } else {
+                    val posts = vm.postsOf(currentId)
                     if (posts.isEmpty()) {
-                        EmptyStateCard(text = "Aún no hay comentarios. ¡Sé el primero!")
+                        EmptyStateCard("Aún no hay comentarios en este tema.")
                     } else {
                         LazyColumn(
-                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier.weight(1f, fill = false)
                         ) {
                             items(posts) { p ->
-                                ElevatedCard(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    shape = MaterialTheme.shapes.medium
-                                ) {
-                                    Column(Modifier.padding(16.dp)) {
-                                        Text(
-                                            p.author,
-                                            style = MaterialTheme.typography.titleSmall.copy(
-                                                fontWeight = FontWeight.SemiBold
-                                            )
-                                        )
-                                        Spacer(Modifier.height(4.dp))
-                                        Text(
-                                            p.body,
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                }
+                                CommentItem(
+                                    post = p,
+                                    onDelete = { vm.deletePost(p) }
+                                )
                             }
                         }
                     }
 
-
+                    // --- Formulario nuevo comentario ---
                     ElevatedCard(
                         modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.large
+                        shape = MaterialTheme.shapes.medium
                     ) {
                         Column(
-                            Modifier.padding(16.dp),
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            Text("Agregar comentario")
+
                             OutlinedTextField(
-                                value = newComment,
-                                onValueChange = { newComment = it },
-                                label = { Text("Escribe un comentario...") },
+                                value = commentAuthor,
+                                onValueChange = { commentAuthor = it },
+                                label = { Text("Autor") },
                                 modifier = Modifier.fillMaxWidth()
                             )
+                            OutlinedTextField(
+                                value = commentBody,
+                                onValueChange = { commentBody = it },
+                                label = { Text("Comentario") },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            if (commentError != null) {
+                                Text(
+                                    commentError!!,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+
                             Button(
                                 onClick = {
-                                    if (selectedTopicId != null && newComment.isNotBlank()) {
-                                        vm.addPost(selectedTopicId!!, author, newComment)
-                                        newComment = ""
-                                        scope.launch {
-                                            snackbar.showSnackbar("Comentario publicado 💬")
-                                        }
+                                    if (commentAuthor.isBlank() || commentBody.isBlank()) {
+                                        commentError = "Autor y comentario son obligatorios."
+                                    } else {
+                                        vm.addPost(currentId, commentAuthor, commentBody)
+                                        commentAuthor = ""
+                                        commentBody = ""
+                                        commentError = null
                                     }
                                 },
                                 modifier = Modifier.align(Alignment.End)
@@ -217,5 +257,36 @@ fun ForumScreen(vm: ForumVm = viewModel()) {
     }
 }
 
+@Composable
+private fun CommentItem(
+    post: Post,
+    onDelete: () -> Unit
+) {
+    ElevatedCard(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                post.author,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(post.body, style = MaterialTheme.typography.bodyMedium)
 
-
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                TextButton(onClick = onDelete) {
+                    Text("Eliminar comentario")
+                }
+            }
+        }
+    }
+}
