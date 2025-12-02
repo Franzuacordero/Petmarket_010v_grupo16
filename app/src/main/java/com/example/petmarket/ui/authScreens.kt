@@ -1,196 +1,87 @@
 package com.example.petmarket.ui
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import androidx.compose.runtime.*
+import androidx.compose.material3.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.ui.text.input.KeyboardType
 
 @Composable
-fun AuthScreen(
-    vm: AuthVm,
-    onLoggedIn: () -> Unit
-) {
-    // 0 = login, 1 = registro, 2 = recuperar clave
-    var selectedTab by remember { mutableIntStateOf(0) }
+fun LoginScreen(nav: NavController) {
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
+    var email by remember { mutableStateOf("") }
+    var pass by remember { mutableStateOf("") }
+    var passVisible by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf("") }
 
-                Text(
-                    text = "PetMarket",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                TabRow(selectedTabIndex = selectedTab) {
-                    Tab(
-                        selected = selectedTab == 0,
-                        onClick = { selectedTab = 0 },
-                        text = { Text("Iniciar sesión") }
-                    )
-                    Tab(
-                        selected = selectedTab == 1,
-                        onClick = { selectedTab = 1 },
-                        text = { Text("Registro") }
-                    )
-                    Tab(
-                        selected = selectedTab == 2,
-                        onClick = { selectedTab = 2 },
-                        text = { Text("Recuperar clave") }
-                    )
-                }
-
-                when (selectedTab) {
-                    0 -> LoginTab(vm = vm, onLoggedIn = onLoggedIn)
-                    1 -> RegisterTab(vm = vm)
-                    2 -> ResetTab(vm = vm)
-                }
-
-                vm.error.value?.let { msg ->
-                    Text(
-                        text = msg,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-                vm.info.value?.let { msg ->
-                    Text(
-                        text = msg,
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoginTab(
-    vm: AuthVm,
-    onLoggedIn: () -> Unit
-) {
     Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        modifier = Modifier
+            .padding(24.dp)
+            .fillMaxSize()
     ) {
+
+        Text("PetMarket Login", style = MaterialTheme.typography.headlineMedium)
+
+        Spacer(Modifier.height(30.dp))
+
         OutlinedTextField(
-            value = vm.email.value,
-            onValueChange = { vm.email.value = it },
+            value = email,
+            onValueChange = { email = it },
             label = { Text("Correo") },
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(Modifier.height(10.dp))
+
         OutlinedTextField(
-            value = vm.password.value,
-            onValueChange = { vm.password.value = it },
+            value = pass,
+            onValueChange = { pass = it },
             label = { Text("Contraseña") },
             modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
+            visualTransformation = if (passVisible) {
+                VisualTransformation.None
+            } else {
+                PasswordVisualTransformation()
+            },
+            trailingIcon = {
+                val icon = if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                IconButton(onClick = { passVisible = !passVisible }) {
+                    Icon(imageVector = icon, contentDescription = null)
+                }
+            }
         )
+
+        Spacer(Modifier.height(20.dp))
 
         Button(
             onClick = {
-                vm.login()
-                if (vm.isLoggedIn.value) {
-                    onLoggedIn()
+                if (email == "admin@pet.cl" && pass == "1234") {
+                    nav.navigate("admin")
+                } else if (email.isNotEmpty() && pass.isNotEmpty()) {
+                    nav.navigate("store")
+                } else {
+                    error = "Credenciales inválidas"
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Entrar")
+            Text("Ingresar")
         }
 
-        TextButton(
-            onClick = {  },
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text("¿Olvidaste tu contraseña?")
+        if (error.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Text(error, color = MaterialTheme.colorScheme.error)
         }
     }
 }
 
-@Composable
-private fun RegisterTab(vm: AuthVm) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = vm.email.value,
-            onValueChange = { vm.email.value = it },
-            label = { Text("Correo") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        OutlinedTextField(
-            value = vm.password.value,
-            onValueChange = { vm.password.value = it },
-            label = { Text("Contraseña") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = PasswordVisualTransformation()
-        )
-
-        Button(
-            onClick = { vm.register() },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Crear cuenta")
-        }
-    }
-}
-
-@Composable
-private fun ResetTab(vm: AuthVm) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        OutlinedTextField(
-            value = vm.email.value,
-            onValueChange = { vm.email.value = it },
-            label = { Text("Correo registrado") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email
-            )
-        )
-
-        Button(
-            onClick = { vm.resetPassword(vm.email.value) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Enviar enlace de recuperación")
-        }
-    }
-}
